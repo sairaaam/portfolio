@@ -1,0 +1,223 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: auto;
+}
+
+body {
+  background: #000000;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+}
+
+/* Hide scrollbar but keep functionality */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #000;
+}
+::-webkit-scrollbar-thumb {
+  background: #4fc3f7;
+  border-radius: 2px;
+}
+
+/* Pitch stripe pattern for background */
+.pitch-bg {
+  background: repeating-linear-gradient(
+    180deg,
+    #0a1a0a 0px,
+    #0a1a0a 60px,
+    #0d1f0d 60px,
+    #0d1f0d 120px
+  );
+}
+
+/* FIFA card shimmer — sweeps across the card on hover */
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-100%) skewX(-18deg); }
+  100% { transform: translateX(200%) skewX(-18deg); }
+}
+
+.shimmer-sweep {
+  overflow: hidden;
+  opacity: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255,255,255,0.14) 50%,
+    transparent 65%
+  );
+  transform: translateX(-100%) skewX(-18deg);
+  transition: opacity 0.2s ease;
+}
+
+.fifa-card:hover .shimmer-sweep {
+  opacity: 1;
+  animation: shimmer-sweep 1.4s ease infinite;
+}
+
+/* Cinematic vignette over the 3D canvas */
+.vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 55%,
+    rgba(0, 0, 0, 0.35) 85%,
+    rgba(0, 0, 0, 0.6) 100%
+  );
+}
+
+/* Scroll progress indicator */
+.scroll-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: #4fc3f7;
+  z-index: 1000;
+  transform-origin: left;
+}
+
+/* Fade in animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+/* ── Loading screen ── */
+@keyframes spin-ball {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ellipsis {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
+
+.loading-ellipsis::after {
+  content: '';
+  display: inline-block;
+  width: 1.2em;
+  text-align: left;
+  animation: ellipsis 1.6s steps(1) infinite;
+}
+
+/* White flash on reveal: white → transparent */
+@keyframes reveal-flash {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.reveal-flash {
+  position: fixed;
+  inset: 0;
+  background: #ffffff;
+  z-index: 60;
+  pointer-events: none;
+  animation: reveal-flash 0.6s ease-out forwards;
+}
+
+/* ── Hero ── */
+.hero-scanlines {
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgba(255,255,255,1) 0px,
+    rgba(255,255,255,1) 3px,
+    rgba(255,255,255,0.82) 3px,
+    rgba(255,255,255,0.82) 5px
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@keyframes underline-draw {
+  from { width: 0; }
+  to { width: min(420px, 60vw); }
+}
+
+.hero-underline {
+  height: 2px;
+  margin-top: 12px;
+  background: linear-gradient(90deg, transparent, #4fc3f7, transparent);
+  animation: underline-draw 2s cubic-bezier(0.22, 1, 0.36, 1) 0.8s both;
+}
+
+@keyframes cta-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+.cta-pulse {
+  animation: cta-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes shoot-prompt-pulse {
+  0%, 100% { box-shadow: 0 0 30px rgba(79, 195, 247, 0.25); }
+  50% { box-shadow: 0 0 48px rgba(79, 195, 247, 0.55); }
+}
+
+.shoot-prompt-pulse {
+  animation: shoot-prompt-pulse 1.6s ease-in-out infinite;
+}
+
+.shoot-prompt-pulse:hover {
+  background: rgba(10, 30, 55, 0.95) !important;
+}
+
+@keyframes cta-ball-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.cta-ball {
+  display: inline-block;
+  animation: cta-ball-bounce 1.2s ease-in-out infinite;
+}
+
+/* ── FIFA card hover lift ── */
+.fifa-card:hover .fifa-card-body {
+  transform: translateY(-4px) scale(1.02);
+  border-color: rgba(79, 195, 247, 0.5);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(79, 195, 247, 0.15);
+}
+
+/* GSAP owns .fifa-card's inline transform — scale the body instead */
+@media (max-width: 1200px) {
+  .fifa-card-body { transform: scale(0.85); transform-origin: center; }
+  .fifa-card:hover .fifa-card-body { transform: scale(0.85) translateY(-4px); }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

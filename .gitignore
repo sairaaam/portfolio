@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.claude/
+*.log
+
+# Screenshot artifacts
+*.png
+verify-shots/
