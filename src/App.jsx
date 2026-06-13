@@ -485,16 +485,6 @@ export default function App() {
               ))}
           </div>
 
-          {/* Scroll position label — subtle bottom indicator */}
-          <div
-            className="absolute bottom-6 right-8 text-xs tracking-widest"
-            style={{
-              color: 'rgba(255,255,255,0.2)',
-              fontFamily: '"JetBrains Mono", monospace',
-            }}
-          >
-            SARAVANA · 2025
-          </div>
         </div>
 
         {/* ── LAYER 2: Scoreboard (end state) ──
