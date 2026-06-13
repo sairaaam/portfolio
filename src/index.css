@@ -66,17 +66,19 @@ body {
   animation: shimmer-sweep 1.4s ease infinite;
 }
 
-/* Cinematic vignette over the 3D canvas */
+/* Broadcast-camera vignette over the 3D canvas — dark edges, bright center */
 .vignette {
   position: fixed;
   inset: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
-  z-index: 1;
+  z-index: 3;
   background: radial-gradient(
     ellipse at center,
-    transparent 55%,
-    rgba(0, 0, 0, 0.35) 85%,
-    rgba(0, 0, 0, 0.6) 100%
+    transparent 40%,
+    rgba(0, 0, 8, 0.4) 70%,
+    rgba(0, 0, 8, 0.8) 100%
   );
 }
 
@@ -85,8 +87,9 @@ body {
   position: fixed;
   top: 0;
   left: 0;
-  height: 2px;
+  height: 3px;
   background: #4fc3f7;
+  box-shadow: 0 0 10px rgba(79, 195, 247, 0.6);
   z-index: 1000;
   transform-origin: left;
 }
@@ -144,19 +147,21 @@ body {
 }
 
 /* ── Hero ── */
+/* LED-scoreboard scanlines: faint dark rules every 3px across the white name */
 .hero-scanlines {
   background-image: repeating-linear-gradient(
     180deg,
     rgba(255,255,255,1) 0px,
-    rgba(255,255,255,1) 3px,
-    rgba(255,255,255,0.82) 3px,
-    rgba(255,255,255,0.82) 5px
+    rgba(255,255,255,1) 2px,
+    rgba(255,255,255,0.85) 2px,
+    rgba(255,255,255,0.85) 3px
   );
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
+/* Underline draws left → right on load */
 @keyframes underline-draw {
   from { width: 0; }
   to { width: min(420px, 60vw); }
@@ -164,9 +169,17 @@ body {
 
 .hero-underline {
   height: 2px;
-  margin-top: 12px;
-  background: linear-gradient(90deg, transparent, #4fc3f7, transparent);
-  animation: underline-draw 2s cubic-bezier(0.22, 1, 0.36, 1) 0.8s both;
+  margin-top: 14px;
+  background: #4fc3f7;
+  box-shadow: 0 0 12px rgba(79, 195, 247, 0.6);
+  width: 0;
+  animation: underline-draw 1.5s cubic-bezier(0.22, 1, 0.36, 1) 0.8s both;
+}
+
+/* Scroll-CTA chevrons fading in sequence */
+@keyframes chevron-fade {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.9; }
 }
 
 @keyframes cta-pulse {
@@ -212,6 +225,30 @@ body {
 @media (max-width: 1200px) {
   .fifa-card-body { transform: scale(0.85); transform-origin: center; }
   .fifa-card:hover .fifa-card-body { transform: scale(0.85) translateY(-4px); }
+}
+
+/* ── Project (squad) cards ── */
+.project-card:hover {
+  border-color: rgba(79, 195, 247, 0.4) !important;
+  background: rgba(79, 195, 247, 0.05) !important;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(79, 195, 247, 0.1);
+}
+
+/* Top accent bar fills 0 → 100% on hover */
+.project-card:hover .project-bar {
+  width: 100% !important;
+}
+
+/* ── Social stats row ── */
+.stat-link:hover {
+  background: rgba(79, 195, 247, 0.08);
+}
+
+/* ── Back to kick-off button ── */
+.back-to-top:hover {
+  background: rgba(79, 195, 247, 0.15) !important;
+  box-shadow: 0 0 24px rgba(79, 195, 247, 0.25);
 }
 
 /* Reduced motion */

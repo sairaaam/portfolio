@@ -13,7 +13,9 @@ import { CameraRig } from './components/Scene/CameraRig'
 import { FIFACard } from './components/UI/FIFACard'
 import { HeroText } from './components/UI/HeroText'
 import { CommentaryFlash } from './components/UI/CommentaryFlash'
+import { ChapterTracker } from './components/UI/ChapterTracker'
 import { Scoreboard } from './components/UI/Scoreboard'
+import { FootballIcon } from './components/UI/icons'
 import { MobileOverlay } from './components/UI/MobileOverlay'
 import { ShootPrompt } from './components/UI/ShootPrompt'
 import { useIsMobile } from './hooks/useIsMobile'
@@ -43,13 +45,13 @@ function LoadingScreen({ progress }) {
       {/* Spinning football */}
       <div
         style={{
-          fontSize: '2.5rem',
+          color: '#4fc3f7',
           animation: 'spin-ball 1.2s linear infinite',
-          lineHeight: 1,
+          lineHeight: 0,
           marginBottom: '1.5rem',
         }}
       >
-        ⚽
+        <FootballIcon size={40} />
       </div>
       <div
         style={{
@@ -237,18 +239,24 @@ export default function App() {
           position: 'fixed',
           top: '-3px',
           left: '-8px',
-          fontSize: '12px',
+          color: '#ffffff',
+          lineHeight: 0,
+          filter: 'drop-shadow(0 0 4px rgba(79,195,247,0.8))',
           zIndex: 1001,
           transition: 'transform 0.25s ease',
           pointerEvents: 'none',
           willChange: 'transform, left',
         }}
       >
-        ⚽
+        <FootballIcon size={14} />
       </div>
 
       {/* Cinematic vignette over the canvas */}
       <div className="vignette" />
+
+      {/* Chapter indicator — mini pitch tracker on the left rail.
+          Hidden once the scoreboard takes over the screen. */}
+      {!showScoreboard && <ChapterTracker scrollProgress={scrollProgress} />}
 
       {/* Scroll wrapper — height drives the entire experience */}
       <div className="scroll-wrapper" style={{ height: '600vh', position: 'relative' }}>
@@ -314,10 +322,19 @@ export default function App() {
               player actually is, so the prompt waits for him to arrive) */}
           <ShootPrompt scrollProgress={smoothProgress} />
 
-          {/* FIFA Cards — left side */}
+          {/* FIFA Cards — left side. Full-height rail (offset clears the
+              chapter tracker); each card anchors itself within it and overlaps,
+              so a tall card never pushes a neighbour off-screen. */}
           <div
-            className="absolute left-8 top-1/2 -translate-y-1/2"
-            style={{ pointerEvents: 'auto' }}
+            className="absolute"
+            style={{
+              left: 'clamp(140px, 12vw, 200px)',
+              top: 0,
+              bottom: 0,
+              width: '200px',
+              pointerEvents: 'none',
+              overflow: 'visible',
+            }}
           >
             {fifaCards
               .filter((c) => c.slideFrom === 'left')
@@ -332,8 +349,15 @@ export default function App() {
 
           {/* FIFA Cards — right side */}
           <div
-            className="absolute right-8 top-1/2 -translate-y-1/2"
-            style={{ pointerEvents: 'auto' }}
+            className="absolute"
+            style={{
+              right: 'clamp(12px, 2vw, 32px)',
+              top: 0,
+              bottom: 0,
+              width: '200px',
+              pointerEvents: 'none',
+              overflow: 'visible',
+            }}
           >
             {fifaCards
               .filter((c) => c.slideFrom === 'right')
@@ -358,37 +382,34 @@ export default function App() {
           </div>
         </div>
 
-        {/* ── LAYER 2: Scoreboard (end state) ── */}
+        {/* ── LAYER 2: Scoreboard (end state) ──
+            Solid covering overlay: a near-opaque dark gradient + a faint pitch
+            stripe pattern fully hides the 3D clutter while keeping the stadium
+            mood. data-lenis-prevent lets it scroll natively (Lenis owns the
+            window wheel). Raised above the chapter tracker. */}
         <div
+          data-lenis-prevent
           style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 2,
+            inset: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 10,
             overflowY: showScoreboard ? 'auto' : 'hidden',
+            WebkitOverflowScrolling: 'touch',
+            scrollPaddingTop: '20px',
             pointerEvents: showScoreboard ? 'auto' : 'none',
-            display: 'flex',
-            // flex-start, not center: centered flex containers clip the top of
-            // overflowing content and make it unscrollable
-            alignItems: 'flex-start',
-            justifyContent: 'center',
+            opacity: showScoreboard ? 1 : 0,
+            transition: 'opacity 0.5s ease',
+            background: `
+              repeating-linear-gradient(180deg, transparent, transparent 60px, rgba(255,255,255,0.008) 60px, rgba(255,255,255,0.008) 120px),
+              linear-gradient(180deg, rgba(0,4,12,0.96) 0%, rgba(0,8,20,0.94) 40%, rgba(0,5,15,0.96) 100%)
+            `,
+            backdropFilter: 'blur(12px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(150%)',
           }}
         >
-          {/* Dark overlay behind scoreboard */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'rgba(0,0,0,0.85)',
-              backdropFilter: 'blur(4px)',
-              opacity: showScoreboard ? 1 : 0,
-              transition: 'opacity 0.6s ease',
-              pointerEvents: 'none',
-            }}
-          />
-          <div style={{ position: 'relative', width: '100%', padding: '4rem 0 2rem', minHeight: '100%' }}>
+          <div style={{ position: 'relative', minHeight: '100vh', height: 'auto', padding: '40px 24px 120px' }}>
             <Scoreboard visible={showScoreboard} />
           </div>
         </div>

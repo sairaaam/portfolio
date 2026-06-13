@@ -1,18 +1,20 @@
 import { useEffect, useRef } from 'react'
-import { gsap } from 'gsap'
+import { FootballIcon } from './icons'
+
+const TECH_STACK = ['React', 'Three.js', 'FastAPI', 'AWS']
 
 export function HeroText({ scrollProgress }) {
   const heroRef = useRef()
 
   useEffect(() => {
-    // Fade out hero text as scroll begins
+    // Hero exits upward as the player starts moving (progress > 0.05).
+    // Reads the raw scroll value only — does not drive any scene animation.
     const interval = setInterval(() => {
       if (!heroRef.current) return
       const p = scrollProgress.current
-      const opacity = Math.max(0, 1 - p / 0.12)
-      const y = p * -40
-      heroRef.current.style.opacity = opacity
-      heroRef.current.style.transform = `translateY(${y}px)`
+      const t = Math.min(1, Math.max(0, (p - 0.02) / 0.1))   // 0 → 1 across the exit window
+      heroRef.current.style.opacity = String(1 - t)
+      heroRef.current.style.transform = `translateY(${-80 * t}px)`
     }, 16)
     return () => clearInterval(interval)
   }, [scrollProgress])
@@ -21,12 +23,16 @@ export function HeroText({ scrollProgress }) {
     <div
       ref={heroRef}
       className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
-      style={{ zIndex: 10 }}
+      style={{ zIndex: 10, willChange: 'transform, opacity' }}
     >
       {/* Eyebrow */}
       <div
-        className="text-xs tracking-[0.4em] uppercase mb-4 fade-in-up"
+        className="fade-in-up"
         style={{
+          fontSize: '12px',
+          letterSpacing: '0.4em',
+          textTransform: 'uppercase',
+          marginBottom: '1.25rem',
           color: '#4fc3f7',
           fontFamily: '"JetBrains Mono", monospace',
           animationDelay: '0.3s',
@@ -37,42 +43,64 @@ export function HeroText({ scrollProgress }) {
         Full Stack Developer · AI Engineer
       </div>
 
-      {/* Main name with scanline texture */}
-      <h1
-        className="fade-in-up hero-scanlines"
+      {/* Main name — laid onto the pitch with a subtle ground-plane tilt */}
+      <div
+        className="fade-in-up"
         style={{
-          fontFamily: '"Bebas Neue", sans-serif',
-          fontSize: 'clamp(4rem, 12vw, 10rem)',
-          lineHeight: 0.9,
-          letterSpacing: '0.05em',
-          color: '#ffffff',
-          textAlign: 'center',
+          perspective: '800px',
           animationDelay: '0.5s',
           opacity: 0,
           animationFillMode: 'forwards',
         }}
       >
-        SARAVANA
-      </h1>
+        <h1
+          className="hero-scanlines"
+          style={{
+            fontFamily: '"Bebas Neue", sans-serif',
+            fontSize: 'clamp(5rem, 12vw, 10rem)',
+            lineHeight: 0.9,
+            letterSpacing: '0.05em',
+            color: '#ffffff',
+            textAlign: 'center',
+            transform: 'rotateX(2deg)',
+            willChange: 'transform',
+          }}
+        >
+          SARAVANA
+        </h1>
+      </div>
 
       {/* Underline draws left → right on load */}
       <div className="hero-underline" />
 
-      {/* Subtitle */}
+      {/* Tech stack pills */}
       <div
-        className="mt-4 text-center fade-in-up"
+        className="mt-6 flex flex-wrap items-center justify-center gap-2 fade-in-up"
         style={{
           animationDelay: '0.7s',
           opacity: 0,
           animationFillMode: 'forwards',
+          maxWidth: '90vw',
         }}
       >
-        <div
-          className="text-sm tracking-widest uppercase"
-          style={{ color: 'rgba(255,255,255,0.4)' }}
-        >
-          React · Three.js · FastAPI · AWS
-        </div>
+        {TECH_STACK.map((tech) => (
+          <span
+            key={tech}
+            style={{
+              fontFamily: '"JetBrains Mono", monospace',
+              fontSize: '10px',
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              color: '#4fc3f7',
+              padding: '2px 10px',
+              border: '1px solid rgba(79,195,247,0.3)',
+              background: 'rgba(79,195,247,0.06)',
+              borderRadius: '2px',
+            }}
+          >
+            {tech}
+          </span>
+        ))}
       </div>
 
       {/* Scroll CTA */}
@@ -85,17 +113,20 @@ export function HeroText({ scrollProgress }) {
         }}
       >
         <div
-          className="text-xs tracking-[0.3em] uppercase cta-pulse flex items-center gap-2"
+          className="cta-pulse flex items-center gap-2"
           style={{
+            fontSize: '12px',
+            letterSpacing: '0.3em',
+            textTransform: 'uppercase',
             color: '#4fc3f7',
             fontFamily: '"JetBrains Mono", monospace',
           }}
         >
-          <span className="cta-ball">⚽</span>
+          <span className="cta-ball flex items-center"><FootballIcon size={14} /></span>
           Scroll to Kick Off
         </div>
-        {/* Animated scroll arrow */}
-        <div className="flex flex-col items-center gap-1 opacity-60">
+        {/* Three stacked chevrons fading in sequence */}
+        <div className="flex flex-col items-center gap-1">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
@@ -105,7 +136,7 @@ export function HeroText({ scrollProgress }) {
                 borderRight: '1.5px solid #4fc3f7',
                 borderBottom: '1.5px solid #4fc3f7',
                 transform: 'rotate(45deg)',
-                animation: `fadeInUp 1s ease ${i * 0.2}s infinite`,
+                animation: `chevron-fade 1.5s ease ${i * 0.2}s infinite`,
               }}
             />
           ))}

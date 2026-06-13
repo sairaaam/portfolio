@@ -12,16 +12,16 @@ const COMMENTARY = [
 const SHOOTS_LINE = { text: 'HE SHOOTS...', sub: 'from the spot · right boot' }
 const GOAL_LINE = { text: 'GOOOAL!', sub: "90+3' · top corner · no chance for the keeper", goal: true }
 
-const CONFETTI_COLORS = ['#4fc3f7', '#ffffff', '#81d4fa', '#b3e5fc']
+const CONFETTI_COLORS = ['#4fc3f7', '#ffffff', '#ff4655']
 
 function burstConfetti(container) {
   if (!container) return
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 60; i++) {
     const piece = document.createElement('div')
-    const size = 4 + Math.random() * 6
+    const size = 4 + Math.random() * 4
     piece.style.cssText = `
       position: absolute; left: 50%; top: 45%;
-      width: ${size}px; height: ${size * (0.4 + Math.random() * 0.6)}px;
+      width: ${size}px; height: ${size}px; border-radius: 50%;
       background: ${CONFETTI_COLORS[i % CONFETTI_COLORS.length]};
       will-change: transform, opacity; pointer-events: none;
     `
@@ -90,31 +90,31 @@ export function CommentaryFlash({ scrollProgress }) {
           gsap.killTweensOf(textRef.current)
 
           if (c.goal) {
-            // MAXIMUM IMPACT: explode in + white flash + confetti
+            // MAXIMUM IMPACT: big coral slam + white flash + confetti
             gsap.fromTo(textRef.current,
-              { opacity: 0, scale: 3 },
+              { opacity: 0, scale: 1.6 },
               {
                 opacity: 1, scale: 1, duration: 0.4, ease: 'expo.out',
                 onComplete: () => {
-                  gsap.to(textRef.current, { opacity: 0, scale: 0.96, duration: 0.45, delay: 1.6 })
+                  gsap.to(textRef.current, { opacity: 0, y: -20, duration: 0.45, delay: 1.6 })
                 },
               }
             )
             if (flashRef.current) {
               gsap.fromTo(flashRef.current,
-                { opacity: 0.6 },
-                { opacity: 0, duration: 0.3, ease: 'power2.out' }
+                { opacity: 0.5 },
+                { opacity: 0, duration: 0.4, ease: 'power2.out' }
               )
             }
             burstConfetti(confettiRef.current)
           } else {
-            // Slam in from below
+            // Cinematic pop — scale 1.4 → 1, hold, exit upward
             gsap.fromTo(textRef.current,
-              { opacity: 0, y: 60, scale: 1.3 },
+              { opacity: 0, y: 0, scale: 1.4 },
               {
-                opacity: 1, y: 0, scale: 1, duration: 0.25, ease: 'power4.out',
+                opacity: 1, y: 0, scale: 1, duration: 0.25, ease: 'expo.out',
                 onComplete: () => {
-                  gsap.to(textRef.current, { opacity: 0, duration: 0.3, delay: 1.2 })
+                  gsap.to(textRef.current, { opacity: 0, y: -20, duration: 0.3, delay: 1.5 })
                 },
               }
             )
@@ -141,23 +141,24 @@ export function CommentaryFlash({ scrollProgress }) {
         style={{ zIndex: 24 }}
       />
 
-      {/* Commentary text */}
+      {/* Commentary text — anchored to the lower quarter of the screen */}
       <div
         ref={textRef}
-        className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
-        style={{ opacity: 0, zIndex: 20, willChange: 'transform, opacity' }}
+        className="absolute inset-x-0 flex flex-col items-center pointer-events-none"
+        style={{ bottom: '18vh', opacity: 0, zIndex: 20, willChange: 'transform, opacity' }}
       >
         <div
           className="whitespace-nowrap text-center"
           style={{
             fontFamily: '"Bebas Neue", sans-serif',
             fontSize: moment?.goal ? 'clamp(4rem, 11vw, 9.5rem)' : 'clamp(3rem, 8vw, 7rem)',
-            letterSpacing: '0.1em',
+            letterSpacing: '0.08em',
             lineHeight: 1,
-            color: '#ffffff',
-            textShadow:
-              '0 0 30px rgba(79,195,247,0.9), 0 0 80px rgba(79,195,247,0.5), 0 4px 24px rgba(0,0,0,0.8)',
-            WebkitTextStroke: '1px rgba(79,195,247,0.4)',
+            // Coral is reserved exclusively for the goal slam
+            color: moment?.goal ? '#ff4655' : '#ffffff',
+            textShadow: moment?.goal
+              ? '0 0 30px rgba(255,70,85,0.9), 0 0 90px rgba(255,70,85,0.5), 0 4px 24px rgba(0,0,0,0.85)'
+              : '0 2px 0 rgba(79,195,247,0.6), 0 0 30px rgba(79,195,247,0.7), 0 4px 24px rgba(0,0,0,0.8)',
           }}
         >
           {moment?.text}
@@ -166,7 +167,7 @@ export function CommentaryFlash({ scrollProgress }) {
           <div
             className="mt-3 text-xs sm:text-sm tracking-[0.25em] uppercase"
             style={{
-              color: 'rgba(79,195,247,0.85)',
+              color: moment?.goal ? 'rgba(255,70,85,0.85)' : 'rgba(79,195,247,0.85)',
               fontFamily: '"JetBrains Mono", monospace',
               textShadow: '0 2px 12px rgba(0,0,0,0.9)',
             }}
