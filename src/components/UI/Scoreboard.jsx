@@ -3,12 +3,6 @@ import { gsap } from 'gsap'
 import { projects, socialLinks } from '../../data/cards'
 import { PROJECT_ICONS, FootballIcon } from './icons'
 
-const SOCIAL_CTA = {
-  GitHub: 'Explore',
-  LinkedIn: 'Connect',
-  Email: 'Contact',
-}
-
 function ProjectCard({ project, index, visible }) {
   const cardRef = useRef()
 
@@ -156,50 +150,60 @@ export function Scoreboard({ visible }) {
           padding: '1.5rem 2rem',
         }}
       >
-        {/* FULL TIME · stoppage */}
+        {/* Experience summary · status */}
         <div className="flex items-center justify-between mb-5">
           <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '11px', letterSpacing: '0.4em', color: '#4fc3f7' }}>
-            FULL TIME
+            EXPERIENCE SUMMARY
           </span>
           <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '11px', letterSpacing: '0.4em', color: '#4fc3f7' }}>
-            90&apos;+3
+            PRESENT
           </span>
         </div>
 
-        {/* Teams + scoreline */}
+        {/* Name · active period · specialization */}
         <div className="flex items-center justify-between gap-4">
           <div className="text-right flex-1">
             <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: '28px', letterSpacing: '0.04em', color: '#ffffff', lineHeight: 1 }}>
-              SARAVANA FC
+              SARAVANA SAIRAM C
             </div>
             <div style={{ fontFamily: '"Inter", sans-serif', fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
-              Portfolio
+              Software Engineer
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <ScoreBox value="1" />
+            <ScoreBox value="2024" />
             <span style={{ width: '20px', height: '2px', background: '#4fc3f7' }} />
-            <ScoreBox value="0" />
+            <ScoreBox value="2026" />
           </div>
 
           <div className="text-left flex-1">
-            <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: '28px', letterSpacing: '0.04em', color: 'rgba(255,255,255,0.6)', lineHeight: 1 }}>
-              OPPORTUNITY
+            <div style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: '28px', letterSpacing: '0.04em', color: 'rgba(255,255,255,0.85)', lineHeight: 1 }}>
+              FULL STACK + AI
             </div>
             <div style={{ fontFamily: '"Inter", sans-serif', fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
-              Industry
+              Specialization
             </div>
           </div>
         </div>
 
-        {/* Goalscorer */}
+        {/* Career timeline */}
         <div
-          className="mt-5 flex items-center justify-center gap-2"
-          style={{ fontFamily: '"Inter", sans-serif', fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}
+          className="mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center"
+          style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '10px', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.5)' }}
         >
-          <FootballIcon size={13} style={{ color: '#4fc3f7' }} />
-          <span>45&apos;+3&nbsp; SARAVANA&nbsp; <span style={{ fontStyle: 'italic' }}>(pen.)</span></span>
+          <span>OCT 2024 – JUN 2026 · SOFTWARE ENGINEER</span>
+          <span style={{ color: 'rgba(79,195,247,0.5)' }}>|</span>
+          <span>AUG 2026 – 2028 · <span style={{ color: '#4fc3f7' }}>SCHOLAR @ SAP</span></span>
+        </div>
+
+        {/* Core tech stack */}
+        <div
+          className="mt-3 flex items-center justify-center gap-2"
+          style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '12px', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.55)' }}
+        >
+          <span style={{ color: '#4fc3f7' }}>✦</span>
+          <span>React · Three.js · FastAPI · AWS · RAG/LLMs</span>
         </div>
       </div>
 
@@ -267,8 +271,7 @@ export function Scoreboard({ visible }) {
               className="flex items-center gap-1 uppercase"
               style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '10px', letterSpacing: '0.15em', color: '#4fc3f7' }}
             >
-              <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
-              {SOCIAL_CTA[link.label] || 'Open'}
+              {link.sub}
             </span>
           </a>
         ))}
@@ -285,7 +288,17 @@ export function Scoreboard({ visible }) {
             color: 'rgba(255,255,255,0.15)',
           }}
         >
-          Built with Three.js · React · GSAP · Blender
+          Built with Three.js · React · GSAP · Blender · FastAPI
+        </p>
+        <p
+          className="uppercase mt-2"
+          style={{
+            fontFamily: '"JetBrains Mono", monospace',
+            fontSize: '9px',
+            letterSpacing: '0.3em',
+            color: 'rgba(79,195,247,0.4)',
+          }}
+        >
         </p>
       </div>
 
@@ -322,13 +335,13 @@ function ScoreBox({ value }) {
     <span
       style={{
         fontFamily: '"Bebas Neue", sans-serif',
-        fontSize: 'clamp(3rem, 8vw, 72px)',
+        fontSize: 'clamp(2.2rem, 5vw, 52px)',
         lineHeight: 1,
         color: '#ffffff',
         background: 'rgba(79,195,247,0.1)',
         border: '1px solid rgba(79,195,247,0.3)',
         borderRadius: '2px',
-        padding: '4px 18px',
+        padding: '6px 16px',
       }}
     >
       {value}

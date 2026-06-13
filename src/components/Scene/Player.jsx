@@ -7,6 +7,11 @@ import { matchState, resetShot } from '../../state/matchState'
 const WAIT_Z = -1.8    // run-up mark, one stride behind the penalty spot
 const SPOT_Z = -2.8    // penalty spot — the ball sits here, the kick lands here
 
+// Pitch surface sits at world y ≈ -1. FOOT_SINK closes the last hair of gap so
+// the boots rest on the grass instead of hovering — tweak between 0 and 0.12.
+const PITCH_Y = -1
+const FOOT_SINK = 0.06
+
 // Scroll drives the approach; the shot itself is event-driven (SPACE key).
 const getPhase = (p, shot) => {
   if (p < 0.15) return 'IDLE_FACING_CAMERA'
@@ -58,7 +63,7 @@ export function Player({ scrollProgress, isMobile }) {
     playerRef.current.scale.setScalar(s)
     playerRef.current.updateWorldMatrix(true, true)
     const newBox = new Box3().setFromObject(playerRef.current)
-    playerRef.current.position.y = -1 - newBox.min.y
+    playerRef.current.position.y = PITCH_Y - newBox.min.y - FOOT_SINK
   }, [scene, isMobile])
 
   // Start in Idle so the hero frame has motion immediately

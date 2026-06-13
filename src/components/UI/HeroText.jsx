@@ -57,16 +57,17 @@ export function HeroText({ scrollProgress }) {
           className="hero-scanlines"
           style={{
             fontFamily: '"Bebas Neue", sans-serif',
-            fontSize: 'clamp(5rem, 12vw, 10rem)',
+            fontSize: 'clamp(3rem, 8vw, 7rem)',
             lineHeight: 0.9,
             letterSpacing: '0.05em',
             color: '#ffffff',
             textAlign: 'center',
+            whiteSpace: 'nowrap',
             transform: 'rotateX(2deg)',
             willChange: 'transform',
           }}
         >
-          SARAVANA
+          SARAVANA SAIRAM C
         </h1>
       </div>
 
@@ -122,7 +123,7 @@ export function HeroText({ scrollProgress }) {
             fontFamily: '"JetBrains Mono", monospace',
           }}
         >
-          <span className="cta-ball flex items-center"><FootballIcon size={14} /></span>
+          <span className="flex items-center"><FootballIcon size={14} /></span>
           Scroll to Kick Off
         </div>
         {/* Three stacked chevrons fading in sequence */}

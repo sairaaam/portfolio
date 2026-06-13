@@ -6,7 +6,6 @@ import { matchState } from '../../state/matchState'
 // off matchState (the kick fires on SPACE, not at a scroll position)
 const COMMENTARY = [
   { trigger: 0.35, text: 'WHAT A TOUCH!', sub: 'first touch · weight of a feather' },
-  { trigger: 0.62, text: 'INTO THE FINAL THIRD...', sub: 'driving at the defence' },
 ]
 
 const SHOOTS_LINE = { text: 'HE SHOOTS...', sub: 'from the spot · right boot' }

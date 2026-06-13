@@ -52,35 +52,36 @@ function IndiaFlag({ size = 22 }) {
   )
 }
 
-// Stylized running footballer silhouette — decorative, sits behind the name
-// at low opacity to give FUT-card energy without a photo.
-function PlayerSilhouette({ color }) {
+// Subtle circuit-board pattern — decorative tech texture behind the name,
+// replacing the old footballer silhouette (no sport iconography on the cards).
+function CircuitPattern({ color }) {
   return (
-    <div
-      className="relative flex items-center justify-center"
-      style={{ height: '80px', overflow: 'hidden' }}
-    >
+    <div className="relative" style={{ height: '72px', overflow: 'hidden' }}>
       <svg
-        viewBox="0 0 24 24"
-        style={{ height: '92px', width: 'auto', opacity: 0.2, filter: `drop-shadow(0 0 12px ${color})` }}
-        fill={color}
+        viewBox="0 0 200 72"
+        preserveAspectRatio="xMidYMid slice"
+        style={{ width: '100%', height: '100%', opacity: 0.22 }}
+        fill="none"
+        stroke={color}
+        strokeWidth="1"
         aria-hidden="true"
       >
-        <path d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z" />
+        {/* traces */}
+        <path d="M10 14 H70 V42 H120" />
+        <path d="M190 20 H140 V52 H60" />
+        <path d="M30 60 V36 H92 V8" />
+        <path d="M160 64 V40 H110" />
+        {/* nodes */}
+        {[[70, 14], [120, 42], [140, 20], [60, 52], [92, 36], [30, 36], [110, 40], [160, 40]].map(
+          ([cx, cy], i) => (
+            <circle key={i} cx={cx} cy={cy} r="2.4" fill={color} stroke="none" />
+          )
+        )}
       </svg>
-      {/* Ball at the running foot */}
-      <span
-        style={{
-          position: 'absolute',
-          right: '26%',
-          bottom: '8px',
-          width: '10px',
-          height: '10px',
-          borderRadius: '50%',
-          background: color,
-          opacity: 0.28,
-          boxShadow: `0 0 10px ${color}`,
-        }}
+      {/* faint glow wash */}
+      <div
+        className="absolute inset-0"
+        style={{ background: `radial-gradient(ellipse at 50% 50%, ${color}14 0%, transparent 70%)` }}
       />
     </div>
   )
@@ -112,12 +113,13 @@ function StatRow({ stat, accentColor, visible, index }) {
   return (
     <div ref={rowRef} className="flex items-center gap-2" style={{ opacity: 0 }}>
       <span
-        className="w-7"
         style={{
+          width: '48px',
+          flexShrink: 0,
           fontFamily: '"JetBrains Mono", monospace',
           fontSize: '10px',
           fontWeight: 600,
-          letterSpacing: '0.08em',
+          letterSpacing: '0.06em',
           color: accentColor,
           opacity: 0.7,
         }}
@@ -157,10 +159,12 @@ export function FIFACard({ card, visible }) {
   const variant = VARIANTS[card.cardType] || VARIANTS.gold
 
   // Local dismiss — the × lets the user slide the card away if it blocks the
-  // scene. Resets whenever the card is re-triggered by scroll.
+  // scene. Reset only when the card fully leaves (not on every re-trigger):
+  // scrub easing re-fires `visible` while parked, which would otherwise undo
+  // the dismiss a frame after the click.
   const [dismissed, setDismissed] = useState(false)
   useEffect(() => {
-    if (visible) setDismissed(false)
+    if (!visible) setDismissed(false)
   }, [visible])
   const show = visible && !dismissed
 
@@ -205,7 +209,7 @@ export function FIFACard({ card, visible }) {
       className="pointer-events-auto select-none fifa-card"
       style={{
         opacity: 0,
-        width: '200px',
+        width: '280px',
         position: 'absolute',
         top: `${safeTop}px`,
         left: 0,
@@ -230,21 +234,23 @@ export function FIFACard({ card, visible }) {
 
         {/* Dismiss — slides the card away if it blocks the scene */}
         <button
+          type="button"
           onClick={() => setDismissed(true)}
           aria-label="Dismiss card"
           className="absolute flex items-center justify-center"
           style={{
             top: '8px',
             right: '8px',
-            width: '16px',
-            height: '16px',
+            width: '20px',
+            height: '20px',
             color: 'rgba(255,255,255,0.3)',
             background: 'transparent',
             border: 'none',
             cursor: 'pointer',
             lineHeight: 1,
             fontSize: '16px',
-            zIndex: 2,
+            zIndex: 3,
+            pointerEvents: 'auto',
             transition: 'color 0.2s ease',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.8)')}
@@ -268,17 +274,22 @@ export function FIFACard({ card, visible }) {
               >
                 {card.rating}
               </div>
-              <div
+              <span
+                className="inline-block uppercase"
                 style={{
-                  fontFamily: '"Bebas Neue", sans-serif',
-                  fontSize: '18px',
-                  letterSpacing: '0.1em',
-                  color: '#ffffff',
-                  marginTop: '2px',
+                  fontFamily: '"JetBrains Mono", monospace',
+                  fontSize: '10px',
+                  letterSpacing: '0.08em',
+                  color: '#4fc3f7',
+                  background: 'rgba(79,195,247,0.12)',
+                  border: '1px solid rgba(79,195,247,0.3)',
+                  borderRadius: '3px',
+                  padding: '3px 8px',
+                  marginTop: '4px',
                 }}
               >
                 {card.position}
-              </div>
+              </span>
             </div>
             <div className="text-right pt-1">
               <IndiaFlag />
@@ -297,17 +308,18 @@ export function FIFACard({ card, visible }) {
             </div>
           </div>
 
-          {/* Player silhouette */}
-          <PlayerSilhouette color={variant.rating} />
+          {/* Circuit-board texture */}
+          <CircuitPattern color={variant.rating} />
 
           {/* Name with flanking rules */}
           <div className="flex items-center gap-2 my-1">
             <span className="flex-1" style={{ height: '1px', background: `linear-gradient(90deg, transparent, ${variant.rating}66)` }} />
             <span
+              className="whitespace-nowrap"
               style={{
                 fontFamily: '"Bebas Neue", sans-serif',
-                fontSize: '18px',
-                letterSpacing: '0.15em',
+                fontSize: '16px',
+                letterSpacing: '0.06em',
                 color: '#ffffff',
               }}
             >

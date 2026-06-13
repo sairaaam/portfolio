@@ -80,6 +80,28 @@ function CubeIcon(props) {
   )
 }
 
+// Crowd audio on
+export function VolumeOnIcon(props) {
+  return (
+    <Svg {...props}>
+      <path d="M11 5 6 9H2v6h4l5 4z" />
+      <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+      <path d="M19 5a9 9 0 0 1 0 14" />
+    </Svg>
+  )
+}
+
+// Crowd audio muted
+export function VolumeOffIcon(props) {
+  return (
+    <Svg {...props}>
+      <path d="M11 5 6 9H2v6h4l5 4z" />
+      <path d="m22 9-6 6" />
+      <path d="m16 9 6 6" />
+    </Svg>
+  )
+}
+
 // Maps project id → icon component
 export const PROJECT_ICONS = {
   1: CpuIcon,

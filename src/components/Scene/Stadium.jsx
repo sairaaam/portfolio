@@ -89,9 +89,11 @@ function StarField() {
   )
 }
 
-// Crowd as thousands of dim light points in sloped stands — reads as a packed
-// night-game stadium without geometry cost
+// Crowd as thousands of light points in sloped stands — reads as a packed
+// floodlit stadium without geometry cost. Colours: white / light-blue / dark-
+// blue (a crowd under stadium lights), with a gentle collective sway.
 function Crowd() {
+  const crowdRef = useRef()
   const { positions, colors } = useMemo(() => {
     const count = 2600
     const pos = new Float32Array(count * 3)
@@ -110,26 +112,33 @@ function Crowd() {
       const b = bands[n % 4]
       const x = THREE.MathUtils.lerp(b[0], b[1], Math.random())
       const z = THREE.MathUtils.lerp(b[2], b[3], Math.random())
-      // rake: farther from pitch = higher
+      // rake: farther from pitch = higher (±0.5 random variation)
       const d = Math.max(Math.abs(x) - 15, Math.abs(z) - 14, 0)
-      const y = 0.5 + d * 0.85 + Math.random() * 0.5
+      const y = 0.5 + d * 0.85 + (Math.random() - 0.5)
       pos[i] = x; pos[i + 1] = y; pos[i + 2] = z
-      // mostly dim warm dots, a few bright phone-light blues
-      if (Math.random() < 0.08) c.setHSL(0.58, 0.7, 0.7)
-      else c.setHSL(0.09, 0.35, 0.18 + Math.random() * 0.25)
+      // crowd colour mix: white, light blue, dark blue
+      const r = Math.random()
+      if (r < 0.34) c.setHSL(0.0, 0.0, 0.85)        // white
+      else if (r < 0.67) c.setHSL(0.57, 0.55, 0.68)  // light blue
+      else c.setHSL(0.62, 0.5, 0.34)                 // dark blue
       col[i] = c.r; col[i + 1] = c.g; col[i + 2] = c.b
       i += 3
     }
     return { positions: pos, colors: col }
   }, [])
 
+  // Subtle, cheap ambient sway — the whole stand drifts ±0.06 on X
+  useFrame((state) => {
+    if (crowdRef.current) crowdRef.current.position.x = Math.sin(state.clock.elapsedTime * 0.8) * 0.06
+  })
+
   return (
-    <points>
+    <points ref={crowdRef}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" count={positions.length / 3} array={positions} itemSize={3} />
         <bufferAttribute attach="attributes-color" count={colors.length / 3} array={colors} itemSize={3} />
       </bufferGeometry>
-      <pointsMaterial size={0.09} vertexColors transparent opacity={0.9} sizeAttenuation depthWrite={false} />
+      <pointsMaterial size={0.1} vertexColors transparent opacity={0.85} sizeAttenuation depthWrite={false} />
     </points>
   )
 }
@@ -307,10 +316,11 @@ function Pitch({ scrollProgress }) {
 
   return (
     <>
-      {/* Static base grass — never moves, fills to the stands */}
+      {/* Static base grass — never moves, fills to the stands. Brighter green
+          with a touch of emissive for the lit-from-above floodlit look. */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.001, -2]} receiveShadow>
         <planeGeometry args={[44, 70]} />
-        <meshStandardMaterial color="#1f4d22" roughness={0.95} />
+        <meshStandardMaterial color="#2d8a2d" emissive="#0a2d0a" emissiveIntensity={0.15} roughness={0.85} metalness={0} />
       </mesh>
 
       {/* Touchlines — parallel to the run, safe to keep static */}
@@ -327,7 +337,7 @@ function Pitch({ scrollProgress }) {
             receiveShadow
           >
             <planeGeometry args={[30, 5]} />
-            <meshStandardMaterial color="#28602c" roughness={0.92} />
+            <meshStandardMaterial color="#327a34" emissive="#0a2d0a" emissiveIntensity={0.12} roughness={0.88} />
           </mesh>
         ))}
       </group>
@@ -404,15 +414,18 @@ export function Stadium({ scrollProgress }) {
 
   return (
     <>
-      {/* Night-game atmosphere */}
-      <fog attach="fog" args={['#050a14', 22, 65]} />
+      {/* Floodlit night-game atmosphere — deep-blue haze */}
+      <fog attach="fog" args={['#0a1a2e', 20, 65]} />
 
-      {/* Lighting rig: hemisphere fill + floodlight key + cool rim */}
-      <hemisphereLight args={['#3a4a6a', '#15301a', 0.55]} />
+      {/* Cool blue ambient + hemisphere fill */}
+      <ambientLight intensity={0.35} color="#8ab4d4" />
+      <hemisphereLight args={['#9ec8ff', '#1a3a1a', 0.4]} />
+
+      {/* Atmospheric blue wash from above — also the shadow key */}
       <directionalLight
-        position={[8, 14, 6]}
-        intensity={1.5}
-        color="#fff4e0"
+        position={[6, 18, 6]}
+        intensity={1.1}
+        color="#cfe4ff"
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-bias={-0.0002}
@@ -422,9 +435,21 @@ export function Stadium({ scrollProgress }) {
         shadow-camera-top={20}
         shadow-camera-bottom={-20}
       />
-      <directionalLight position={[-8, 10, -4]} intensity={0.5} color="#dbe9ff" />
-      {/* Subtle cool rim — neutral white to avoid tinting goal support poles blue */}
-      <directionalLight position={[-3, 3, 8]} intensity={0.18} color="#e8f0ff" />
+
+      {/* 4 corner floodlight banks — the electric-stadium key lights */}
+      <pointLight position={[-18, 14, 8]} intensity={2.5} color="#e8f4ff" distance={60} decay={1.5} />
+      <pointLight position={[18, 14, 8]} intensity={2.5} color="#e8f4ff" distance={60} decay={1.5} />
+      <pointLight position={[-18, 14, -15]} intensity={2.0} color="#ddeeff" distance={60} decay={1.5} />
+      <pointLight position={[18, 14, -15]} intensity={2.0} color="#ddeeff" distance={60} decay={1.5} />
+
+      {/* Ground bounce — the pitch glows green from below */}
+      <pointLight position={[0, 0.5, -4]} intensity={1.2} color="#2d7a2d" distance={20} decay={2} />
+
+      {/* Character lighting — keeps the player vivid and rims his hair so it
+          doesn't blend into the dark sky. Tuned to the corridor he occupies
+          (x≈0, z 1 → -2.8): a warm front fill + a cool top/back hair light. */}
+      <pointLight position={[3, 3.5, 4]} intensity={1.5} color="#fff3e2" distance={18} decay={2} />
+      <pointLight position={[0, 6.5, -1]} intensity={2.0} color="#d6ebff" distance={16} decay={2} />
 
       {/* Stadium environment */}
       <Stands />

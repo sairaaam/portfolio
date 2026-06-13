@@ -15,7 +15,8 @@ import { HeroText } from './components/UI/HeroText'
 import { CommentaryFlash } from './components/UI/CommentaryFlash'
 import { ChapterTracker } from './components/UI/ChapterTracker'
 import { Scoreboard } from './components/UI/Scoreboard'
-import { FootballIcon } from './components/UI/icons'
+import { FootballIcon, VolumeOnIcon, VolumeOffIcon } from './components/UI/icons'
+import { Howl } from 'howler'
 import { MobileOverlay } from './components/UI/MobileOverlay'
 import { ShootPrompt } from './components/UI/ShootPrompt'
 import { useIsMobile } from './hooks/useIsMobile'
@@ -23,6 +24,20 @@ import { fifaCards } from './data/cards'
 import { matchState } from './state/matchState'
 
 gsap.registerPlugin(ScrollTrigger)
+
+// ── Crowd audio (Howler singleton) ──────────────────────────────────────────
+// Browsers block autoplay, so the Howl is only created after the first user
+// gesture (scroll / click / key). Volume is driven by scroll position in App.
+let crowdSound = null
+function initAudio() {
+  if (crowdSound) return
+  crowdSound = new Howl({
+    src: ['/audio/crowd-cheering.mp3'],
+    loop: true,
+    volume: 0,
+    preload: true,
+  })
+}
 
 // Decouples the 3D scene from raw scroll: every frame the smoothed value chases
 // the ScrollTrigger value (damp lambda 6 ≈ lerp 0.1 at 60fps, frame-rate safe).
@@ -95,6 +110,9 @@ export default function App() {
   const scrollBarRef = useRef()
   const progressBallRef = useRef()
   const { progress, active } = useProgress()
+
+  const [muted, setMuted] = useState(false)
+  const mutedRef = useRef(false)
 
   // Lenis smooth scroll — dampens native wheel input, drives ScrollTrigger
   // through GSAP's ticker so there is exactly one rAF loop
@@ -219,6 +237,79 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // ── Crowd audio ───────────────────────────────────────────────────────────
+  // Unlock on the first user gesture (autoplay policy)
+  useEffect(() => {
+    const unlock = () => initAudio()
+    document.addEventListener('scroll', unlock, { once: true })
+    document.addEventListener('click', unlock, { once: true })
+    document.addEventListener('keydown', unlock, { once: true })
+    return () => {
+      document.removeEventListener('scroll', unlock)
+      document.removeEventListener('click', unlock)
+      document.removeEventListener('keydown', unlock)
+    }
+  }, [])
+
+  // Keep mute in sync
+  useEffect(() => {
+    mutedRef.current = muted
+    if (crowdSound) crowdSound.mute(muted)
+  }, [muted])
+
+  // Drive crowd volume off scroll position (polls the raw value — leaves the
+  // ScrollTrigger setup untouched). Moments A–D from the brief.
+  useEffect(() => {
+    const s = { started: false, goalRamped: false, celebrated: false }
+    const interval = setInterval(() => {
+      if (!crowdSound) return
+      const p = scrollProgress.current
+
+      // Moment A — dribble starts: play looped ambient, fade in to 0.3
+      if (p >= 0.15 && !s.started) {
+        s.started = true
+        crowdSound.mute(mutedRef.current)
+        if (!crowdSound.playing()) crowdSound.play()
+        crowdSound.fade(crowdSound.volume(), 0.3, 2000)
+      }
+
+      // Moment B — GOAL: crowd erupts, ramp 0.3 → 1.0 over 0.5s
+      if (p >= 0.88 && !s.goalRamped && s.started) {
+        s.goalRamped = true
+        crowdSound.fade(crowdSound.volume(), 1.0, 500)
+      }
+
+      // Moment C — celebration: hold 1.0 for 3s, then settle to 0.4
+      if (p >= 0.92 && !s.celebrated && s.started) {
+        s.celebrated = true
+        setTimeout(() => {
+          if (crowdSound && scrollProgress.current >= 0.80) {
+            crowdSound.fade(crowdSound.volume(), 0.4, 1500)
+          }
+        }, 3000)
+      }
+
+      // Scrolling back below the goal restores ambient level for a clean replay
+      if (p < 0.80 && (s.goalRamped || s.celebrated)) {
+        s.goalRamped = false
+        s.celebrated = false
+        if (s.started) crowdSound.fade(crowdSound.volume(), 0.3, 1000)
+      }
+
+      // Moment D — back to the start: fade out and pause
+      if (p < 0.10 && s.started) {
+        s.started = false
+        s.goalRamped = false
+        s.celebrated = false
+        crowdSound.fade(crowdSound.volume(), 0, 1000)
+        setTimeout(() => {
+          if (crowdSound && scrollProgress.current < 0.10) crowdSound.pause()
+        }, 1000)
+      }
+    }, 100)
+    return () => clearInterval(interval)
+  }, [])
+
   // Mobile renders a simple scrollable layout — no 3D scroll
   if (isMobile) {
     return <MobileOverlay />
@@ -230,6 +321,30 @@ export default function App() {
 
       {/* Reveal flash after loading completes */}
       {showFlash && <div className="reveal-flash" />}
+
+      {/* Crowd audio mute toggle */}
+      <button
+        onClick={() => setMuted((m) => !m)}
+        aria-label={muted ? 'Unmute crowd' : 'Mute crowd'}
+        className="flex items-center justify-center"
+        style={{
+          position: 'fixed',
+          top: '16px',
+          right: '16px',
+          width: '32px',
+          height: '32px',
+          color: 'rgba(255,255,255,0.3)',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          zIndex: 100,
+          transition: 'color 0.2s ease',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.7)')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}
+      >
+        {muted ? <VolumeOffIcon size={20} /> : <VolumeOnIcon size={20} />}
+      </button>
 
       {/* Scroll progress bar + ball indicator */}
       <div className="scroll-indicator" ref={scrollBarRef} style={{ width: '0%' }} />
@@ -331,7 +446,7 @@ export default function App() {
               left: 'clamp(140px, 12vw, 200px)',
               top: 0,
               bottom: 0,
-              width: '200px',
+              width: '280px',
               pointerEvents: 'none',
               overflow: 'visible',
             }}
@@ -354,7 +469,7 @@ export default function App() {
               right: 'clamp(12px, 2vw, 32px)',
               top: 0,
               bottom: 0,
-              width: '200px',
+              width: '280px',
               pointerEvents: 'none',
               overflow: 'visible',
             }}
