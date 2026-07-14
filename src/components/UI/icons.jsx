@@ -36,7 +36,7 @@ export function FootballIcon(props) {
   )
 }
 
-// AI / computer vision
+// AI / computer vision — MedAR
 function CpuIcon(props) {
   return (
     <Svg {...props}>
@@ -47,7 +47,17 @@ function CpuIcon(props) {
   )
 }
 
-// EdTech / study platform
+// Algorithmic trading / finance — ARIA
+function TrendingUpIcon(props) {
+  return (
+    <Svg {...props}>
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+      <polyline points="16 7 22 7 22 13" />
+    </Svg>
+  )
+}
+
+// Education / LMS
 function BookIcon(props) {
   return (
     <Svg {...props}>
@@ -57,55 +67,22 @@ function BookIcon(props) {
   )
 }
 
-// SaaS / dashboards
-function DashboardIcon(props) {
+// Globe / website — GD College
+function GlobeIcon(props) {
   return (
     <Svg {...props}>
-      <rect width="7" height="9" x="3" y="3" rx="1" />
-      <rect width="7" height="5" x="14" y="3" rx="1" />
-      <rect width="7" height="9" x="14" y="12" rx="1" />
-      <rect width="7" height="5" x="3" y="16" rx="1" />
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
     </Svg>
   )
 }
 
-// 3D / Three.js portfolio
-function CubeIcon(props) {
-  return (
-    <Svg {...props}>
-      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-      <path d="m3.3 7 8.7 5 8.7-5" />
-      <path d="M12 22V12" />
-    </Svg>
-  )
-}
-
-// Crowd audio on
-export function VolumeOnIcon(props) {
-  return (
-    <Svg {...props}>
-      <path d="M11 5 6 9H2v6h4l5 4z" />
-      <path d="M15.5 8.5a5 5 0 0 1 0 7" />
-      <path d="M19 5a9 9 0 0 1 0 14" />
-    </Svg>
-  )
-}
-
-// Crowd audio muted
-export function VolumeOffIcon(props) {
-  return (
-    <Svg {...props}>
-      <path d="M11 5 6 9H2v6h4l5 4z" />
-      <path d="m22 9-6 6" />
-      <path d="m16 9 6 6" />
-    </Svg>
-  )
-}
 
 // Maps project id → icon component
 export const PROJECT_ICONS = {
-  1: CpuIcon,
-  2: BookIcon,
-  3: DashboardIcon,
-  4: CubeIcon,
+  1: CpuIcon,        // MedAR — AI / CV
+  2: TrendingUpIcon, // ARIA — algorithmic trading
+  3: BookIcon,       // GD LMS — education
+  4: GlobeIcon,      // GD College Website
 }

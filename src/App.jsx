@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { useProgress, Preload } from '@react-three/drei'
+import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import { PCFShadowMap, MathUtils } from 'three'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -15,37 +16,26 @@ import { HeroText } from './components/UI/HeroText'
 import { CommentaryFlash } from './components/UI/CommentaryFlash'
 import { ChapterTracker } from './components/UI/ChapterTracker'
 import { Scoreboard } from './components/UI/Scoreboard'
-import { FootballIcon, VolumeOnIcon, VolumeOffIcon } from './components/UI/icons'
-import { Howl } from 'howler'
+import { FootballIcon } from './components/UI/icons'
 import { MobileOverlay } from './components/UI/MobileOverlay'
 import { ShootPrompt } from './components/UI/ShootPrompt'
 import { useIsMobile } from './hooks/useIsMobile'
+import { useReducedMotion } from './hooks/useReducedMotion'
 import { fifaCards } from './data/cards'
 import { matchState } from './state/matchState'
 
 gsap.registerPlugin(ScrollTrigger)
-
-// ── Crowd audio (Howler singleton) ──────────────────────────────────────────
-// Browsers block autoplay, so the Howl is only created after the first user
-// gesture (scroll / click / key). Volume is driven by scroll position in App.
-let crowdSound = null
-function initAudio() {
-  if (crowdSound) return
-  crowdSound = new Howl({
-    src: ['/audio/crowd-cheering.mp3'],
-    loop: true,
-    volume: 0,
-    preload: true,
-  })
-}
 
 // Decouples the 3D scene from raw scroll: every frame the smoothed value chases
 // the ScrollTrigger value (damp lambda 6 ≈ lerp 0.1 at 60fps, frame-rate safe).
 // Scene components consume `smooth`; UI overlays keep the raw value.
 function ProgressSmoother({ raw, smooth }) {
   useFrame((_, delta) => {
-    smooth.current = MathUtils.damp(smooth.current, raw.current, 6, delta)
-    // kill sub-pixel drift so phase thresholds settle deterministically
+    // lambda 9: paired with the lighter scrub below, two smoothing stages
+    // (Lenis input + this damp) replace the old three-stage chain
+    // (Lenis + scrub 1.5 + damp 6), which added up to a noticeably mushy
+    // input-to-scene delay on fast scrolls.
+    smooth.current = MathUtils.damp(smooth.current, raw.current, 9, delta)
     if (Math.abs(smooth.current - raw.current) < 0.0005) smooth.current = raw.current
   })
   return null
@@ -101,6 +91,7 @@ function LoadingScreen({ progress }) {
 
 export default function App() {
   const isMobile = useIsMobile()
+  const reducedMotion = useReducedMotion()
   const scrollProgress = useRef(0)   // raw — written by ScrollTrigger, read by UI
   const smoothProgress = useRef(0)   // damped — the only value the 3D scene reads
   const [visibleCard, setVisibleCard] = useState(null)
@@ -111,26 +102,35 @@ export default function App() {
   const progressBallRef = useRef()
   const { progress, active } = useProgress()
 
-  const [muted, setMuted] = useState(false)
-  const mutedRef = useRef(false)
-
   // Lenis smooth scroll — dampens native wheel input, drives ScrollTrigger
   // through GSAP's ticker so there is exactly one rAF loop
   const lenisRef = useRef(null)
   useEffect(() => {
     if (isMobile) return
-    const lenis = new Lenis({ duration: 1.1, smoothWheel: true })
+    // Reduced-motion: shorten Lenis's momentum window instead of removing it
+    // outright — the scroll IS the 3D experience here, not a decorative
+    // flourish, so we keep it functional but cut the float/overshoot feel.
+    const lenis = new Lenis({ duration: reducedMotion ? 0.4 : 1.1, smoothWheel: true })
     lenisRef.current = lenis
     lenis.on('scroll', ScrollTrigger.update)
     const raf = (time) => lenis.raf(time * 1000)
     gsap.ticker.add(raf)
     gsap.ticker.lagSmoothing(0)
+    // Normalizes wheel/trackpad delta scaling across browsers (Firefox and
+    // Safari report very different deltas than Chrome for the same physical
+    // scroll) so the scrub feels equally smooth regardless of input device.
+    // allowNestedScroll: true is required — otherwise this hijacks wheel/touch
+    // for the whole page and the scoreboard's own overflowY:auto panel (see
+    // the data-lenis-prevent container below) can't receive scroll input past
+    // "Featured Work", trapping the social links + footer out of reach.
+    const normalizer = ScrollTrigger.normalizeScroll({ allowNestedScroll: true })
     return () => {
       gsap.ticker.remove(raf)
       lenis.destroy()
       lenisRef.current = null
+      normalizer?.kill()
     }
-  }, [isMobile])
+  }, [isMobile, reducedMotion])
 
   // Set up scroll trigger
   useEffect(() => {
@@ -138,9 +138,10 @@ export default function App() {
       trigger: '.scroll-wrapper',
       start: 'top top',
       end: 'bottom bottom',
-      // numerical scrub: progress takes ~1.5s to catch up to the scrollbar —
-      // combined with Lenis this removes all scroll-step jumps
-      scrub: 1.5,
+      // Lighter scrub (was 1.5s): Lenis already smooths the raw input, so a
+      // long scrub on top of that just stacked latency. 0.9 keeps the
+      // scroll-step jumps gone while feeling far more responsive.
+      scrub: reducedMotion ? 0.4 : 0.9,
       onUpdate: (self) => {
         const p = self.progress
         scrollProgress.current = p
@@ -169,7 +170,7 @@ export default function App() {
     })
 
     return () => trigger.kill()
-  }, [])
+  }, [reducedMotion])
 
   // Scoreboard appears ~3s after the goal (event-driven, not scroll-driven),
   // and hides again when the shot resets on scroll-back
@@ -186,6 +187,24 @@ export default function App() {
     }, 200)
     return () => clearInterval(interval)
   }, [])
+
+  // Lock Lenis while the scoreboard is up so wheel events don't drive the
+  // 3D timeline. Unlocked only by the "Back to Kick Off" button below.
+  useEffect(() => {
+    if (!lenisRef.current) return
+    if (showScoreboard) lenisRef.current.stop()
+    else lenisRef.current.start()
+  }, [showScoreboard])
+
+  const handleBackToKickOff = () => {
+    matchState.shot = 'idle'
+    if (lenisRef.current) {
+      lenisRef.current.start()
+      lenisRef.current.scrollTo(0, { duration: 1.2 })
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
 
   // Hide loading screen once all GLB/texture assets have actually loaded,
   // with a dramatic white flash on the reveal
@@ -237,79 +256,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // ── Crowd audio ───────────────────────────────────────────────────────────
-  // Unlock on the first user gesture (autoplay policy)
-  useEffect(() => {
-    const unlock = () => initAudio()
-    document.addEventListener('scroll', unlock, { once: true })
-    document.addEventListener('click', unlock, { once: true })
-    document.addEventListener('keydown', unlock, { once: true })
-    return () => {
-      document.removeEventListener('scroll', unlock)
-      document.removeEventListener('click', unlock)
-      document.removeEventListener('keydown', unlock)
-    }
-  }, [])
-
-  // Keep mute in sync
-  useEffect(() => {
-    mutedRef.current = muted
-    if (crowdSound) crowdSound.mute(muted)
-  }, [muted])
-
-  // Drive crowd volume off scroll position (polls the raw value — leaves the
-  // ScrollTrigger setup untouched). Moments A–D from the brief.
-  useEffect(() => {
-    const s = { started: false, goalRamped: false, celebrated: false }
-    const interval = setInterval(() => {
-      if (!crowdSound) return
-      const p = scrollProgress.current
-
-      // Moment A — dribble starts: play looped ambient, fade in to 0.3
-      if (p >= 0.15 && !s.started) {
-        s.started = true
-        crowdSound.mute(mutedRef.current)
-        if (!crowdSound.playing()) crowdSound.play()
-        crowdSound.fade(crowdSound.volume(), 0.3, 2000)
-      }
-
-      // Moment B — GOAL: crowd erupts, ramp 0.3 → 1.0 over 0.5s
-      if (p >= 0.88 && !s.goalRamped && s.started) {
-        s.goalRamped = true
-        crowdSound.fade(crowdSound.volume(), 1.0, 500)
-      }
-
-      // Moment C — celebration: hold 1.0 for 3s, then settle to 0.4
-      if (p >= 0.92 && !s.celebrated && s.started) {
-        s.celebrated = true
-        setTimeout(() => {
-          if (crowdSound && scrollProgress.current >= 0.80) {
-            crowdSound.fade(crowdSound.volume(), 0.4, 1500)
-          }
-        }, 3000)
-      }
-
-      // Scrolling back below the goal restores ambient level for a clean replay
-      if (p < 0.80 && (s.goalRamped || s.celebrated)) {
-        s.goalRamped = false
-        s.celebrated = false
-        if (s.started) crowdSound.fade(crowdSound.volume(), 0.3, 1000)
-      }
-
-      // Moment D — back to the start: fade out and pause
-      if (p < 0.10 && s.started) {
-        s.started = false
-        s.goalRamped = false
-        s.celebrated = false
-        crowdSound.fade(crowdSound.volume(), 0, 1000)
-        setTimeout(() => {
-          if (crowdSound && scrollProgress.current < 0.10) crowdSound.pause()
-        }, 1000)
-      }
-    }, 100)
-    return () => clearInterval(interval)
-  }, [])
-
   // Mobile renders a simple scrollable layout — no 3D scroll
   if (isMobile) {
     return <MobileOverlay />
@@ -321,30 +267,6 @@ export default function App() {
 
       {/* Reveal flash after loading completes */}
       {showFlash && <div className="reveal-flash" />}
-
-      {/* Crowd audio mute toggle */}
-      <button
-        onClick={() => setMuted((m) => !m)}
-        aria-label={muted ? 'Unmute crowd' : 'Mute crowd'}
-        className="flex items-center justify-center"
-        style={{
-          position: 'fixed',
-          top: '16px',
-          right: '16px',
-          width: '32px',
-          height: '32px',
-          color: 'rgba(255,255,255,0.3)',
-          background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          zIndex: 100,
-          transition: 'color 0.2s ease',
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.7)')}
-        onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}
-      >
-        {muted ? <VolumeOffIcon size={20} /> : <VolumeOnIcon size={20} />}
-      </button>
 
       {/* Scroll progress bar + ball indicator */}
       <div className="scroll-indicator" ref={scrollBarRef} style={{ width: '0%' }} />
@@ -406,12 +328,26 @@ export default function App() {
           >
             <Suspense fallback={null}>
               <ProgressSmoother raw={scrollProgress} smooth={smoothProgress} />
-              <CameraRig scrollProgress={smoothProgress} isMobile={isMobile} />
+              <CameraRig scrollProgress={smoothProgress} isMobile={isMobile} reducedMotion={reducedMotion} />
               <Stadium scrollProgress={smoothProgress} />
               <Player scrollProgress={smoothProgress} isMobile={isMobile} />
               <Ball scrollProgress={smoothProgress} />
               <Preload all />
             </Suspense>
+            {/* Selective bloom: high luminance threshold means only the
+                toneMapped={false} floodlight lamp heads (emissiveIntensity
+                2.2, deliberately left outside ACES tone mapping) actually
+                trigger it — the rest of the ACES-mapped scene stays under
+                the threshold and is untouched. */}
+            <EffectComposer multisampling={0}>
+              <Bloom
+                luminanceThreshold={0.85}
+                luminanceSmoothing={0.2}
+                intensity={0.6}
+                mipmapBlur
+                radius={0.6}
+              />
+            </EffectComposer>
           </Canvas>
         </div>
 
@@ -437,54 +373,54 @@ export default function App() {
               player actually is, so the prompt waits for him to arrive) */}
           <ShootPrompt scrollProgress={smoothProgress} />
 
-          {/* FIFA Cards — left side. Full-height rail (offset clears the
-              chapter tracker); each card anchors itself within it and overlaps,
-              so a tall card never pushes a neighbour off-screen. */}
-          <div
-            className="absolute"
-            style={{
-              left: 'clamp(140px, 12vw, 200px)',
-              top: 0,
-              bottom: 0,
-              width: '280px',
-              pointerEvents: 'none',
-              overflow: 'visible',
-            }}
-          >
-            {fifaCards
-              .filter((c) => c.slideFrom === 'left')
-              .map((card) => (
-                <FIFACard
-                  key={card.id}
-                  card={card}
-                  visible={visibleCard === card.id}
-                />
-              ))}
-          </div>
+        </div>
 
-          {/* FIFA Cards — right side */}
-          <div
-            className="absolute"
-            style={{
-              right: 'clamp(12px, 2vw, 32px)',
-              top: 0,
-              bottom: 0,
-              width: '280px',
-              pointerEvents: 'none',
-              overflow: 'visible',
-            }}
-          >
-            {fifaCards
-              .filter((c) => c.slideFrom === 'right')
-              .map((card) => (
-                <FIFACard
-                  key={card.id}
-                  card={card}
-                  visible={visibleCard === card.id}
-                />
-              ))}
-          </div>
+        {/* FIFA Cards — left side (own fixed layer so pointer-events are never blocked by a none-ancestor) */}
+        <div
+          style={{
+            position: 'fixed',
+            left: 'clamp(140px, 12vw, 200px)',
+            top: 0,
+            bottom: 0,
+            width: '280px',
+            zIndex: 2,
+            pointerEvents: 'none',
+            overflow: 'visible',
+          }}
+        >
+          {fifaCards
+            .filter((c) => c.slideFrom === 'left')
+            .map((card) => (
+              <FIFACard
+                key={card.id}
+                card={card}
+                visible={visibleCard === card.id}
+              />
+            ))}
+        </div>
 
+        {/* FIFA Cards — right side */}
+        <div
+          style={{
+            position: 'fixed',
+            right: 'clamp(12px, 2vw, 32px)',
+            top: 0,
+            bottom: 0,
+            width: '280px',
+            zIndex: 2,
+            pointerEvents: 'none',
+            overflow: 'visible',
+          }}
+        >
+          {fifaCards
+            .filter((c) => c.slideFrom === 'right')
+            .map((card) => (
+              <FIFACard
+                key={card.id}
+                card={card}
+                visible={visibleCard === card.id}
+              />
+            ))}
         </div>
 
         {/* ── LAYER 2: Scoreboard (end state) ──
@@ -515,7 +451,7 @@ export default function App() {
           }}
         >
           <div style={{ position: 'relative', minHeight: '100vh', height: 'auto', padding: '40px 24px 120px' }}>
-            <Scoreboard visible={showScoreboard} />
+            <Scoreboard visible={showScoreboard} onBackToKickOff={handleBackToKickOff} />
           </div>
         </div>
       </div>

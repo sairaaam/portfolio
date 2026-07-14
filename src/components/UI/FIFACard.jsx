@@ -158,16 +158,6 @@ export function FIFACard({ card, visible }) {
   const dir = card.slideFrom === 'left' ? -1 : 1
   const variant = VARIANTS[card.cardType] || VARIANTS.gold
 
-  // Local dismiss — the × lets the user slide the card away if it blocks the
-  // scene. Reset only when the card fully leaves (not on every re-trigger):
-  // scrub easing re-fires `visible` while parked, which would otherwise undo
-  // the dismiss a frame after the click.
-  const [dismissed, setDismissed] = useState(false)
-  useEffect(() => {
-    if (!visible) setDismissed(false)
-  }, [visible])
-  const show = visible && !dismissed
-
   // Smart vertical anchoring: measure the real card height and keep it fully
   // inside the viewport (never clipped top or bottom), recomputed on resize.
   const [safeTop, setSafeTop] = useState(16)
@@ -183,25 +173,23 @@ export function FIFACard({ card, visible }) {
     return () => window.removeEventListener('resize', compute)
   }, [])
 
+  // Drive enter/exit purely from the scroll-visible prop.
+  // dismissedRef lets the button bypass React state entirely — no re-render race.
   useEffect(() => {
     if (!cardRef.current) return
-    if (show) {
+    if (visible) {
       gsap.fromTo(cardRef.current,
-        { opacity: 0, x: dir * 200, rotateY: dir * 20, scale: 0.85 },
-        {
-          opacity: 1, x: 0, rotateY: 0, scale: 1,
-          duration: 0.7, ease: 'back.out(1.4)', overwrite: true,   // overshoot ≈ cubic-bezier(.34,1.56,.64,1)
-          transformPerspective: 900,
-        }
+        { opacity: 0, x: dir * 200, scale: 0.85 },
+        { opacity: 1, x: 0, scale: 1, duration: 0.7, ease: 'back.out(1.4)', overwrite: true }
       )
     } else {
       gsap.to(cardRef.current, {
-        opacity: 0, x: dir * 220, rotateY: dir * 16, scale: 0.9,
+        opacity: 0, x: dir * 220, scale: 0.9,
         duration: 0.4, ease: 'power2.in', overwrite: true,
-        transformPerspective: 900,
       })
     }
-  }, [show, dir])
+  }, [visible, dir])
+
 
   return (
     <div
@@ -213,10 +201,10 @@ export function FIFACard({ card, visible }) {
         position: 'absolute',
         top: `${safeTop}px`,
         left: 0,
-        willChange: 'transform, opacity',
+        pointerEvents: 'auto',
       }}
     >
-      <div
+<div
         className="relative overflow-hidden fifa-card-body"
         style={{
           background: variant.bg,
@@ -229,35 +217,6 @@ export function FIFACard({ card, visible }) {
           transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.3s, box-shadow 0.3s',
         }}
       >
-        {/* Top accent bar */}
-        <div style={{ height: '3px', width: '100%', background: variant.bar }} />
-
-        {/* Dismiss — slides the card away if it blocks the scene */}
-        <button
-          type="button"
-          onClick={() => setDismissed(true)}
-          aria-label="Dismiss card"
-          className="absolute flex items-center justify-center"
-          style={{
-            top: '8px',
-            right: '8px',
-            width: '20px',
-            height: '20px',
-            color: 'rgba(255,255,255,0.3)',
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            lineHeight: 1,
-            fontSize: '16px',
-            zIndex: 3,
-            pointerEvents: 'auto',
-            transition: 'color 0.2s ease',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.8)')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}
-        >
-          ×
-        </button>
 
         <div className="px-3 pt-2.5 pb-2">
           {/* Rating + position (left) / flag + club (right) */}

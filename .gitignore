@@ -3,6 +3,10 @@ dist/
 .claude/
 *.log
 
-# Screenshot artifacts
-*.png
+# Repo-root scratch screenshots from manual verification runs only —
+# anchored to root so it doesn't also catch public/screenshots/**/*.png,
+# which are real project assets the site serves.
+/*.png
 verify-shots/
+
+.vercel

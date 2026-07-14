@@ -56,7 +56,7 @@ function journeyFov(u) {
 const posTarget = new THREE.Vector3()
 const lookTarget = new THREE.Vector3()
 
-export function CameraRig({ scrollProgress, isMobile }) {
+export function CameraRig({ scrollProgress, isMobile, reducedMotion }) {
   const { camera } = useThree()
   const smoothPos = useRef(new THREE.Vector3(0, 1.4, 4.5))
   const smoothLook = useRef(new THREE.Vector3(0, 0.8, 0.6))
@@ -132,20 +132,21 @@ export function CameraRig({ scrollProgress, isMobile }) {
     let x = smoothPos.current.x
     let y = smoothPos.current.y
 
-    // Idle breathing on the static hero frame only
-    if (p < 0.15) {
+    // Idle breathing on the static hero frame only — skipped for
+    // prefers-reduced-motion (a subtle vestibular trigger some users flag)
+    if (p < 0.15 && !reducedMotion) {
       y += Math.sin(t * 1.2) * 0.008
     }
 
     // Strike shake — while the kick winds up (camera on the side profile)
-    if (newIndex === 1 && matchState.shot === 'shooting') {
+    if (newIndex === 1 && matchState.shot === 'shooting' && !reducedMotion) {
       x += Math.sin(t * 60) * 0.02
       y += Math.cos(t * 60) * 0.01
     }
 
     // Net-impact shake: random offsets with an exponential decay over ~0.45s
     const sinceImpact = matchState.netImpactAt >= 0 ? t - matchState.netImpactAt : Infinity
-    if (sinceImpact < 0.45) {
+    if (sinceImpact < 0.45 && !reducedMotion) {
       const energy = Math.exp(-7 * sinceImpact) * 0.14
       x += (Math.random() - 0.5) * 2 * energy
       y += (Math.random() - 0.5) * 2 * energy

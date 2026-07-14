@@ -288,7 +288,7 @@ export function MobileOverlay() {
         </div>
         <h1
           className="hero-scanlines"
-          style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 'clamp(2.6rem, 13vw, 4rem)', lineHeight: 0.92, letterSpacing: '0.04em', color: '#ffffff' }}
+          style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 'clamp(1.6rem, 8vw, 4rem)', lineHeight: 0.92, letterSpacing: '0.04em', color: '#ffffff', whiteSpace: 'nowrap' }}
         >
           SARAVANA SAIRAM C
         </h1>
@@ -429,9 +429,6 @@ export function MobileOverlay() {
       <div className="text-center px-6 pb-12">
         <p className="uppercase" style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '9px', letterSpacing: '0.25em', color: 'rgba(255,255,255,0.15)' }}>
           Built with Three.js · React · GSAP · Blender · FastAPI
-        </p>
-        <p className="uppercase mt-2" style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '9px', letterSpacing: '0.25em', color: 'rgba(79,195,247,0.4)' }}>
-          Available for full-time &amp; freelance opportunities
         </p>
       </div>
     </div>

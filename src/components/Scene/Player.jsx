@@ -25,6 +25,7 @@ export function Player({ scrollProgress, isMobile }) {
   const playerRef = useRef()
   const kickFired = useRef(false)
   const prevZ = useRef(1)           // for velocity → animation timeScale sync
+  const facingDir = useRef(1)       // 1 = walking toward goal, -1 = walking back to the hero mark
   const currentAnim = useRef('Idle')   // name of the clip currently faded in
   const { scene, animations } = useGLTF('/models/player.opt.glb', false)
 
@@ -64,6 +65,13 @@ export function Player({ scrollProgress, isMobile }) {
     playerRef.current.updateWorldMatrix(true, true)
     const newBox = new Box3().setFromObject(playerRef.current)
     playerRef.current.position.y = PITCH_Y - newBox.min.y - FOOT_SINK
+
+    // GLTF meshes don't inherit castShadow from the primitive wrapper — set it
+    // per-mesh so the player actually grounds himself in the directional
+    // light's shadow map instead of floating shadowless on the grass.
+    playerRef.current.traverse((obj) => {
+      if (obj.isMesh) obj.castShadow = true
+    })
   }, [scene, isMobile])
 
   // Start in Idle so the hero frame has motion immediately
@@ -100,14 +108,26 @@ export function Player({ scrollProgress, isMobile }) {
     playerRef.current.position.z = Math.max(z, SPOT_Z)
 
     // ── Foot-skating fix ──────────────────────────────────────────────────────
-    const speed = Math.abs(playerRef.current.position.z - prevZ.current) / Math.max(delta, 1e-4)
+    const zVelocity = (playerRef.current.position.z - prevZ.current) / Math.max(delta, 1e-4)
+    const speed = Math.abs(zVelocity)
     prevZ.current = playerRef.current.position.z
 
     // ── Rotation ──────────────────────────────────────────────────────────────
-    // rotation.y = 0 faces the camera (+Z); Math.PI faces the goal (−Z).
-    // Only the hero faces the camera — from the first dribble step through the
-    // shot and celebration he stays squared up to the goal.
-    const targetRotation = phase === 'IDLE_FACING_CAMERA' ? 0 : Math.PI
+    // rotation.y = 0 faces the camera (+Z); Math.PI faces the goal (−Z). Only
+    // the hero faces the camera. While dribbling, facing follows the actual
+    // direction of travel: scrolling forward walks him toward the goal, but
+    // scrolling back up must turn him around to face the camera again —
+    // otherwise the same forward-stride clip plays while he travels backward
+    // and reads as moonwalking. facingDir only updates above a small velocity
+    // threshold so it doesn't flicker while paused between scroll steps.
+    if (phase === 'DRIBBLING') {
+      if (zVelocity < -0.05) facingDir.current = 1
+      else if (zVelocity > 0.05) facingDir.current = -1
+    }
+    const targetRotation =
+      phase === 'IDLE_FACING_CAMERA' ? 0
+      : phase === 'DRIBBLING' ? (facingDir.current === 1 ? Math.PI : 0)
+      : Math.PI   // AWAITING_SHOT / SHOOTING / CELEBRATING always square up to the goal
     playerRef.current.rotation.y = MathUtils.lerp(
       playerRef.current.rotation.y, targetRotation, 0.08
     )

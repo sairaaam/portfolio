@@ -1,7 +1,9 @@
 import { useRef, useMemo, forwardRef } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { Environment } from '@react-three/drei'
 import { gsap } from 'gsap'
 import * as THREE from 'three'
+import { matchState } from '../../state/matchState'
 
 // Soft radial glow texture for floodlight halos
 function useGlowTexture() {
@@ -363,10 +365,20 @@ export function Stadium({ scrollProgress }) {
   const markingsRef = useRef()  // box markings: opacity fade-in
   const goalpostRef = useRef()  // goalpost: GSAP rise entrance
   const goalUp = useRef(false)
+  const rimLightRef = useRef() // cool top/back character light — punches on the strike
   const glowMap = useGlowTexture()
 
-  useFrame(() => {
+  useFrame((state) => {
     const p = scrollProgress.current
+
+    // Rim-light punch: flares the back light the instant the ball leaves the
+    // boot (matchState.launchedAt), decaying over ~0.5s — sells the strike
+    // the same way the camera shake sells the net impact.
+    if (rimLightRef.current) {
+      const sinceLaunch = matchState.launchedAt >= 0 ? state.clock.elapsedTime - matchState.launchedAt : Infinity
+      const punch = sinceLaunch < 0.5 ? Math.exp(-6 * sinceLaunch) * 2.5 : 0
+      rimLightRef.current.intensity = 2.0 + punch
+    }
 
     // Goal area approaches at the same rate the grass scrolls — planted on
     // the pitch. Starts 31.2 units deep, arrives (goal at z=-8) at p=0.78.
@@ -449,7 +461,12 @@ export function Stadium({ scrollProgress }) {
           doesn't blend into the dark sky. Tuned to the corridor he occupies
           (x≈0, z 1 → -2.8): a warm front fill + a cool top/back hair light. */}
       <pointLight position={[3, 3.5, 4]} intensity={1.5} color="#fff3e2" distance={18} decay={2} />
-      <pointLight position={[0, 6.5, -1]} intensity={2.0} color="#d6ebff" distance={16} decay={2} />
+      <pointLight ref={rimLightRef} position={[0, 6.5, -1]} intensity={2.0} color="#d6ebff" distance={16} decay={2} />
+
+      {/* Low-res night environment map — gives the goalpost/ball PBR
+          materials real specular reflections instead of flat shading.
+          background=false keeps our own fog/sky, only lighting is used. */}
+      <Environment preset="night" resolution={256} background={false} />
 
       {/* Stadium environment */}
       <Stands />
